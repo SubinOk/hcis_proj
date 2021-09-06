@@ -4,7 +4,8 @@ import torch.optim as optim
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 import time
-import BayesianOptimization
+from bayes_opt import BayesianOptimization
+#import bayes_optimizer
 
 class ConvLSTM(nn.Module):
 
@@ -200,8 +201,8 @@ class CNN(nn.Module):
 class Manager:
     def __init__(self):
         self.pbounds = {
-            'learning_rate': ,
-            'batch_size':
+            'learning_rate': 0.01,
+            'batch_size': 32
         }
 
         self.bayes_optimizaer = BayesianOptimization(

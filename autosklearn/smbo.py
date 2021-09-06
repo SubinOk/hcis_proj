@@ -1,5 +1,5 @@
 import copy
-import json
+import sdf
 import logging
 import multiprocessing
 import os
@@ -408,11 +408,11 @@ class AutoMLSMBO(object):
         if self.resampling_strategy in ['partial-cv',
                                         'partial-cv-iterative-fit']:
             num_folds = self.resampling_strategy_args['folds']
-            instances = [[json.dumps({'task_id': self.dataset_name,
+            instances = [[sdf.dumps({'task_id': self.dataset_name,
                                       'fold': fold_number})]
                          for fold_number in range(num_folds)]
         else:
-            instances = [[json.dumps({'task_id': self.dataset_name})]]
+            instances = [[sdf.dumps({'task_id': self.dataset_name})]]
 
         # TODO rebuild target algorithm to be it's own target algorithm
         # evaluator, which takes into account that a run can be killed prior

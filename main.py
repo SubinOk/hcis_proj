@@ -37,7 +37,7 @@ args.use_bn = True
 
 # ====== Optimizer & Training ====== #
 args.optim = 'Adam'
-args.model = 'CNN'
+args.model = 'Conv1D'
 args.lr = 0.001
 args.epoch = 2
 

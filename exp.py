@@ -56,7 +56,7 @@ def save_exp_result(setting, result):
     result.update(setting)
     result = to_json(result)
     with open(filename, 'w') as f:
-        json.dump(result, f)
+        sdf.dump(result, f)
 
 
 def load_exp_result(exp_name):
@@ -66,7 +66,7 @@ def load_exp_result(exp_name):
     for filename in filenames:
         if exp_name in filename:
             with open(join(dir_path, filename), 'r') as infile:
-                results = json.load(infile)
+                results = sdf.load(infile)
                 list_result.append(results)
     df = pd.DataFrame(list_result)  # .drop(columns=[])
     return df
