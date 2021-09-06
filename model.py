@@ -198,14 +198,17 @@ class CNN(nn.Module):
 
         return out
 
-class Manager:
+class Manager():
     def __init__(self):
+
+        print("Loading dataset...")
+
         self.pbounds = {
-            'learning_rate': 0.01,
-            'batch_size': 32
+            'learning_rate': (0.001,0.01),
+            'batch_size': (16,128)
         }
 
-        self.bayes_optimizaer = BayesianOptimization(
+        self.bayes_optimizer = BayesianOptimization(
             f=self.train,
             pbounds=self.pbounds,
             random_state = 777
@@ -315,6 +318,9 @@ def experiment(partition, args):
     elif args.model == 'Conv1D':
         model = Conv1D(args.input_dim, args.y_frames, args.n_layers, args.n_filters, args.filter_size, args.batch_size,
                        args.dropout, args.use_bn, args.str_len)
+    elif args.model == 'CNN':
+        model = Conv1D(args.input_dim, args.y_frames, args.n_filters, args.filter_size, args.batch_size,
+                       args.dropout)
     else:
         raise ValueError('In-valid model choice')
 
@@ -341,11 +347,12 @@ def experiment(partition, args):
 
     for epoch in range(args.epoch):  # loop over the dataset multiple times
         ts = time.time()
-        # print('Start training ... ')
-        # model, train_loss, train_acc = train(model, partition, optimizer, loss_fn, args)
-        manager.bayes_optimizer.maximize(init_points=init_points, n_iter=n_iter, verbose = 2, xi=0.01)
-        # print('Start validation ... ')
-        val_loss, val_acc = manager.validate(model, partition, loss_fn, args)
+        print('Start training ... ')
+        #model, train_loss, train_acc = manager.train(model, partition, optimizer, loss_fn, args)
+        manager.bayes_optimizer.maximize(init_points=2, n_iter=8, acq='ei', xi=0.01)
+        #manager.bayes_optimizer.maximize(init_points=2, n_iter=8, verbose=2, xi=0.01)
+        print('Start validation ... ')
+        #val_loss, val_acc = manager.validate(model, partition, loss_fn, args)
         te = time.time()
 
         # ====== Add Epoch Data ====== #
@@ -359,7 +366,8 @@ def experiment(partition, args):
             'Epoch {}, Acc(train/val): {:2.2f}/{:2.2f}, Loss(train/val) {:2.5f}/{:2.5f}. Took {:2.2f} sec'.format(epoch, train_acc, val_acc, train_loss, val_loss, te - ts))
 
     test_acc = test(model, partition, args)
-    manager.test(args.model_name, batch_size=args.inference_batch_size)
+    manager.test(args.model_name, args.batch_size)
+    #manager.test(args.model_name, batch_size=args.inference_batch_size)
     # ======= Add Result to Dictionary ======= #
     result = {}
     result['train_losses'] = train_losses
