@@ -202,10 +202,12 @@ class Manager():
     def __init__(self):
 
         print("Loading dataset...")
+        #lr = (0.001,0.01)
+        #batch_size = (16,128)
 
         self.pbounds = {
-            'learning_rate': (0.001,0.01),
-            'batch_size': (16,128)
+            'learning_rate': lr,
+            'batch_size': batch_size
         }
 
         self.bayes_optimizer = BayesianOptimization(
@@ -216,7 +218,7 @@ class Manager():
 
     def train(model, partition, optimizer, loss_fn, args):
         trainloader = DataLoader(partition['train'],
-                                 batch_size=args.batch_size,
+                                 batch_size=round(batch_size),
                                  shuffle=True, drop_last=True)
         model.train()
         model.zero_grad()
