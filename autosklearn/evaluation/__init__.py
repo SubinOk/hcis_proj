@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 import functools
 import logging
-import json
+import sdf
 import math
 import multiprocessing
 from queue import Empty
@@ -97,7 +97,7 @@ def _encode_exit_status(exit_status: Union[str, int, Type[BaseException]]
     try:
         # If it can be dumped, then it is int
         exit_status = cast(int, exit_status)
-        json.dumps(exit_status)
+        sdf.dumps(exit_status)
         return exit_status
     except (TypeError, OverflowError):
         return str(exit_status)

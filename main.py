@@ -18,7 +18,8 @@ args.exp_name = "exp1_lr"
 args.device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 # ====== Data Loading ====== #
-args.batch_size = 1
+#args.batch_size = 1
+args.batch_size = (16,128)
 args.x_frames = 1
 args.y_frames = 3 # the number of classes
 
@@ -37,8 +38,9 @@ args.use_bn = True
 
 # ====== Optimizer & Training ====== #
 args.optim = 'Adam'
-args.model = 'CNN'
+args.model = 'Conv1D'
 args.lr = 0.001
+#args.lr = (0.0001,0.001)
 args.epoch = 2
 
 # ====== Experiment Variable ====== #
@@ -47,6 +49,10 @@ name_var2 = 'n_layers'
 list_var1 = [0.001, 0.0001, 0.00001]
 list_var2 = [1, 2, 3]
 
+args.init_points = 2
+args.n_iter = 8
+
+# ================================= #
 
 trainset = dataset.NumDataset('data/FakeData.csv', args.x_frames, args.y_frames, args.str_len)
 trainset, valset = torch.utils.data.random_split(trainset, [362, 90])

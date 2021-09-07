@@ -3,7 +3,7 @@ import multiprocessing
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 import copy
-import json
+import sdf
 
 from ConfigSpace import Configuration
 
@@ -1232,7 +1232,7 @@ def eval_partial_cv(
 ) -> None:
     if budget_type is not None:
         raise NotImplementedError()
-    instance_dict: Dict[str, int] = json.loads(instance) if instance is not None else {}
+    instance_dict: Dict[str, int] = sdf.loads(instance) if instance is not None else {}
     fold = instance_dict['fold']
 
     evaluator = TrainEvaluator(

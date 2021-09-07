@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 import copy
 import io
-import json
+import sdf
 import platform
 import logging.handlers
 import multiprocessing
@@ -772,7 +772,7 @@ class AutoML(BaseEstimator):
                     [list(entry[:2]) + [entry[2].get_dictionary()] + list(entry[3:])
                      for entry in self.trajectory_]
                 with open(trajectory_filename, 'w') as fh:
-                    json.dump(saveable_trajectory, fh)
+                    sdf.dump(saveable_trajectory, fh)
             except Exception as e:
                 self._logger.exception(e)
                 raise

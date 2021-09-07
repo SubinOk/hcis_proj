@@ -1,5 +1,5 @@
 import hashlib
-import json
+import sdf
 import os
 import pathlib
 import pickle
@@ -23,7 +23,7 @@ this_directory = pathlib.Path(__file__).resolve().parent
 for metric in metrics:
     training_data_file = this_directory / metric.name / 'askl2_training_data.json'
     with open(training_data_file) as fh:
-        training_data = json.load(fh)
+        training_data = sdf.load(fh)
         fh.seek(0)
         m = hashlib.md5()
         m.update(fh.read().encode('utf8'))
@@ -411,7 +411,7 @@ class AutoSklearn2Classifier(AutoSklearnClassifier):
             this_directory / metric_name / 'askl2_portfolios' / ('%s.json' % automl_policy)
         )
         with open(portfolio_file) as fh:
-            portfolio_json = json.load(fh)
+            portfolio_json = sdf.load(fh)
         portfolio = portfolio_json['portfolio']
 
         if setting['fidelity'] == 'SH':
