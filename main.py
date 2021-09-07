@@ -1,7 +1,6 @@
 import torch
 import argparse
 from copy import deepcopy
-
 import model
 
 # ====== Random Seed Initialization ====== #
@@ -46,7 +45,6 @@ args.epoch = 2
 args.init_points = 2
 args.n_iter = 8
 # ================================= #
-
 
 md_num = int(input("Enter the number of setting(1: train, 2: val, 3: test): "))
 
