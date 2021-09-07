@@ -1,8 +1,15 @@
 import hashlib
+import json
 import os
+from os import listdir
+from os.path import isfile, join
 
-from bayes_opt.logger import JSONLogger
-from bayes_opt.event import Events
+import numpy as np
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+import torch
+
 
 def create_folder(directory):
     try:
@@ -11,15 +18,45 @@ def create_folder(directory):
     except OSError:
         print('Error: Creating directory.' + directory)
 
-def save_exp_result(manager):
+
+def _to_json_dict_with_list(dictionary):
+    """
+    Convert dict to dict with leafs only being strings. So it recursively makes keys to strings
+    if they are not dictionaries.
+
+    Use case:
+        - saving dictionary of tensors (convert the tensors to strings!)
+        - saving arguments from script (e.g. argparse) for it to be pretty
+    """
+    if type(dictionary) is np.ndarray:
+        return dictionary.tolist()
+    elif type(dictionary) is torch.Tensor:
+        return dictionary.tolist()
+    if type(dictionary) != dict:
+        return dictionary
+    d = {k: _to_json_dict_with_list(v) for k, v in dictionary.items()}
+    return d
+
+
+def to_json(dic):
+    if type(dic) is dict:
+        dic = dict(dic)
+    else:
+        dic = dic.__dict__
+    return _to_json_dict_with_list(dic)
+
+
+def save_exp_result(setting, result):
+    exp_name = setting['exp_name']
+    del setting['epoch']
+
     create_folder('results')
-<<<<<<< Updated upstream
     hash_key = hashlib.sha1(str(setting).encode()).hexdigest()[:6]
     filename = 'results/{}-{}.json'.format(exp_name, hash_key)
     result.update(setting)
     result = to_json(result)
     with open(filename, 'w') as f:
-        json.dump(result, f)
+        sdf.dump(result, f)
 
 
 def load_exp_result(exp_name):
@@ -29,7 +66,7 @@ def load_exp_result(exp_name):
     for filename in filenames:
         if exp_name in filename:
             with open(join(dir_path, filename), 'r') as infile:
-                results = json.load(infile)
+                results = sdf.load(infile)
                 list_result.append(results)
     df = pd.DataFrame(list_result)  # .drop(columns=[])
     return df
@@ -107,10 +144,7 @@ def plot_acc_variation(var1, var2, df, **kwargs):
                  transform=plt.gca().transAxes, bbox=dict(facecolor='yellow', alpha=0.5, boxstyle="round,pad=0.1"))
 
     g = g.map(show_acc, 'epoch', 'Acc', 'test_acc')
-=======
-    hash_key = hashlib.sha1().hexdigest()[:6]
-    filename = 'results/bayesian_logs-{}.json'.format(hash_key)
-    logger = JSONLogger(path=filename)
-    manager.bayes_optimizer.subscribe(Events.OPTIMIZATION_STEP, logger)
->>>>>>> Stashed changes
 
+    g.add_legend()
+    g.fig.suptitle('Train Accuracy vs Val Accuracy')
+    plt.subplots_adjust(top=0.89)
