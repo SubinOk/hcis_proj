@@ -147,7 +147,6 @@ class CNN(nn.Module):
 
         return out
 
-
 class Manager():
     def __init__(self, args):
         self.trainset = dataset.NumDataset('data/FakeData.csv', args.x_frames, args.y_frames, args.str_len)
@@ -181,8 +180,7 @@ class Manager():
             pbounds=self.pbounds
         )
 
-				
-		def train(self, learning_rate, batch_size):
+	def train(self, learning_rate, batch_size):
         model = self.model
         batch_size = round(batch_size)
         loss_fn = torch.nn.CrossEntropyLoss()
@@ -190,7 +188,7 @@ class Manager():
         trainloader = DataLoader(self.trainset, batch_size=batch_size,
                                  shuffle=True, drop_last=True)
 
-         optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+        optimizer = optim.Adam(model.parameters(), lr=learning_rate)
         model.train()
         model.zero_grad()
         optimizer.zero_grad()
@@ -221,7 +219,7 @@ class Manager():
         train_acc = train_acc / len(trainloader)
         train_acc = float(train_acc)
 
-        return model, train_loss, train_acc
+        return train_loss, train_acc
 
     def validate(self, loss_fn, args):
         model = self.model
@@ -288,23 +286,23 @@ def experiment(mode, args):
     loss_fn = torch.nn.CrossEntropyLoss()
     manager = Manager(args)
 
-		for epoch in range(args.epoch):  # loop over the dataset multiple time
+    for epoch in range(args.epoch):  # loop over the dataset multiple time
         if args.mode == 'train':
             print('Start training ... ')
             exp.save_exp_result(manager)
             manager.bayes_optimizer.maximize(args.init_points, args.n_iter, acq='ei', xi=0.01)
 
         elif args.mode == 'val':
-						ts = time.time()
+            ts = time.time()
             print('Start validation ... ')
             val_loss, val_acc = manager.validate(model, loss_fn, args)
             # ====== Add Epoch Data ====== #
             val_losses.append(val_loss)
             val_accs.append(val_acc)
             # ============================ #
-        		te = time.time()
-						print(
-							'Epoch {}, Acc: {:2.2f}, Loss: {:2.5f}. Took {:2.2f} sec'.format(epoch, val_acc, val_loss, te - ts))
+            te = time.time()
+            print(
+                'Epoch {}, Acc: {:2.2f}, Loss: {:2.5f}. Took {:2.2f} sec'.format(epoch, val_acc, val_loss, te - ts))
 
     if args.mode == 'test':
         test_acc = manager.test(model, args)
