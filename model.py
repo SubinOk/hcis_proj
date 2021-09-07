@@ -4,13 +4,9 @@ import torch.optim as optim
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 import time
-<<<<<<< Updated upstream
-import BayesianOptimization
-=======
 from bayes_opt import BayesianOptimization
 import exp
 import dataset
->>>>>>> Stashed changes
 
 class ConvLSTM(nn.Module):
 
@@ -151,13 +147,7 @@ class CNN(nn.Module):
 
         return out
 
-<<<<<<< Updated upstream
-class Manager:
-    def __init__(self):
-        self.pbounds = {
-            'learning_rate': ,
-            'batch_size':
-=======
+
 class Manager():
     def __init__(self, args):
         self.trainset = dataset.NumDataset('data/FakeData.csv', args.x_frames, args.y_frames, args.str_len)
@@ -184,29 +174,23 @@ class Manager():
         self.pbounds = {
             'learning_rate': args.lr,
             'batch_size': args.batch_size
->>>>>>> Stashed changes
         }
 
-        self.bayes_optimizaer = BayesianOptimization(
+        self.bayes_optimizer = BayesianOptimization(
             f=self.train,
             pbounds=self.pbounds
         )
 
-<<<<<<< Updated upstream
-    def train(model, partition, optimizer, loss_fn, args):
-        trainloader = DataLoader(partition['train'],
-                                 batch_size=args.batch_size,
-=======
-    def train(self, learning_rate, batch_size):
+				
+		def train(self, learning_rate, batch_size):
         model = self.model
         batch_size = round(batch_size)
         loss_fn = torch.nn.CrossEntropyLoss()
 
         trainloader = DataLoader(self.trainset, batch_size=batch_size,
->>>>>>> Stashed changes
                                  shuffle=True, drop_last=True)
 
-        optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+         optimizer = optim.Adam(model.parameters(), lr=learning_rate)
         model.train()
         model.zero_grad()
         optimizer.zero_grad()
@@ -292,35 +276,7 @@ class Manager():
         test_acc = float(test_acc)
         return test_acc
 
-<<<<<<< Updated upstream
-def experiment(partition, args):
-
-    if args.model == 'ConvLSTM':
-        model = ConvLSTM(args.input_dim, args.hid_dim, args.y_frames, args.n_layers, args.n_filters, args.filter_size, args.batch_size,
-                         args.dropout, args.use_bn, args.str_len)
-    elif args.model == 'LSTM':
-        model = LSTM(args.input_dim, args.hid_dim, args.y_frames, args.n_layers, args.batch_size, args.dropout, args.use_bn)
-
-    elif args.model == 'Conv1D':
-        model = Conv1D(args.input_dim, args.y_frames, args.n_layers, args.n_filters, args.filter_size, args.batch_size,
-                       args.dropout, args.use_bn, args.str_len)
-    else:
-        raise ValueError('In-valid model choice')
-
-    model.to(args.device)
-    loss_fn = torch.nn.CrossEntropyLoss()
-
-    if args.optim == 'SGD':
-        optimizer = optim.SGD(model.parameters(), lr=args.lr, weight_decay=args.l2)
-    elif args.optim == 'RMSprop':
-        optimizer = optim.RMSprop(model.parameters(), lr=args.lr, weight_decay=args.l2)
-    elif args.optim == 'Adam':
-        optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.l2)
-    else:
-        raise ValueError('In-valid optimizer choice')
-=======
 def experiment(mode, args):
->>>>>>> Stashed changes
 
     # ===== List for epoch-wise data ====== #
     train_losses = []
@@ -332,42 +288,27 @@ def experiment(mode, args):
     loss_fn = torch.nn.CrossEntropyLoss()
     manager = Manager(args)
 
-    for epoch in range(args.epoch):  # loop over the dataset multiple times
-        ts = time.time()
-<<<<<<< Updated upstream
-        # print('Start training ... ')
-        # model, train_loss, train_acc = train(model, partition, optimizer, loss_fn, args)
-        manager.bayes_optimizer.maximize(init_points=init_points, n_iter=n_iter, verbose = 2, xi=0.01)
-        # print('Start validation ... ')
-        val_loss, val_acc = manager.validate(model, partition, loss_fn, args)
-=======
+		for epoch in range(args.epoch):  # loop over the dataset multiple time
         if args.mode == 'train':
             print('Start training ... ')
             exp.save_exp_result(manager)
             manager.bayes_optimizer.maximize(args.init_points, args.n_iter, acq='ei', xi=0.01)
 
         elif args.mode == 'val':
+						ts = time.time()
             print('Start validation ... ')
             val_loss, val_acc = manager.validate(model, loss_fn, args)
             # ====== Add Epoch Data ====== #
             val_losses.append(val_loss)
             val_accs.append(val_acc)
             # ============================ #
->>>>>>> Stashed changes
-        te = time.time()
-
-        if args.mode == 'val':
-            print(
-                'Epoch {}, Acc: {:2.2f}, Loss: {:2.5f}. Took {:2.2f} sec'.format(epoch, val_acc, val_loss, te - ts))
+        		te = time.time()
+						print(
+							'Epoch {}, Acc: {:2.2f}, Loss: {:2.5f}. Took {:2.2f} sec'.format(epoch, val_acc, val_loss, te - ts))
 
     if args.mode == 'test':
         test_acc = manager.test(model, args)
 
-<<<<<<< Updated upstream
-    test_acc = test(model, partition, args)
-    manager.test(args.model_name, batch_size=args.inference_batch_size)
-=======
->>>>>>> Stashed changes
     # ======= Add Result to Dictionary ======= #
     result = {}
 

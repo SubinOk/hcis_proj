@@ -12,11 +12,7 @@ args = parser.parse_args("")
 args.device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 # ====== Data Loading ====== #
-<<<<<<< Updated upstream
-args.batch_size = 1
-=======
 # args.batch_size = 1
->>>>>>> Stashed changes
 args.x_frames = 1
 args.y_frames = 3 # the number of classes
 
@@ -35,15 +31,9 @@ args.use_bn = True
 
 # ====== Optimizer & Training ====== #
 args.optim = 'Adam'
-<<<<<<< Updated upstream
-args.model = 'CNN'
-args.lr = 0.001
-args.epoch = 2
-=======
 args.model = 'ConvLSTM'
 # args.lr = (0.0001, 0.001)
 # args.epoch = 2
->>>>>>> Stashed changes
 
 # ====== Experiment Variable ====== #
 args.batch_size = (16, 128)
@@ -53,12 +43,10 @@ args.lr = (0.0001, 0.001)
 args.epoch = 2
 # args.l2
 
-<<<<<<< Updated upstream
-=======
 args.init_points = 2
 args.n_iter = 8
 # ================================= #
->>>>>>> Stashed changes
+
 
 md_num = int(input("Enter the number of setting(1: train, 2: val, 3: test): "))
 
