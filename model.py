@@ -9,7 +9,7 @@ import exp
 import dataset
 
 class ConvLSTM(nn.Module):
-	
+
     def __init__(self, input_dim, hidden_dim, output_dim, num_layers, num_filters, filter_size, batch_size, dropout, use_bn, window_len):
 
         super(ConvLSTM, self).__init__()
@@ -156,17 +156,17 @@ class Manager():
 
         # Select the model type
         if args.model == 'ConvLSTM':
-            self.model = ConvLSTM(args.input_dim, args.hid_dim, args.y_frames, args.n_layers, args.n_filters,
-             args.filter_size, args.batch_size,
-             args.dropout, args.use_bn, args.str_len)
+        self.model = ConvLSTM(args.input_dim, args.hid_dim, args.y_frames, args.n_layers, args.n_filters,
+        args.filter_size, args.batch_size,
+        args.dropout, args.use_bn, args.str_len)
         elif args.model == 'LSTM':
-            self.model = LSTM(args.input_dim, args.hid_dim, args.y_frames, args.n_layers, args.batch_size, args.dropout,
-                              args.use_bn)
+        self.model = LSTM(args.input_dim, args.hid_dim, args.y_frames, args.n_layers, args.batch_size, args.dropout,
+        args.use_bn)
         elif args.model == 'CNN':
-            self.model = Conv1D(args.input_dim, args.y_frames, args.n_filters, args.filter_size, args.batch_size,
-                                args.dropout)
+        self.model = Conv1D(args.input_dim, args.y_frames, args.n_filters, args.filter_size, args.batch_size,
+        args.dropout)
         else:
-            raise ValueError('In-valid model choice')
+        raise ValueError('In-valid model choice')
 
         self.model.to(self.device)
 
@@ -179,23 +179,22 @@ class Manager():
         f=self.train,
         pbounds=self.pbounds
         )
-		
-	def train(self, learning_rate, batch_size):
+
+    def train(self, learning_rate, batch_size):
         model = self.model
-        # change for indent
         batch_size = round(batch_size)
         loss_fn = torch.nn.CrossEntropyLoss()
 
-        trainloader = DataLoader(self.trainset, batch_size=batch_size, 
-								 shuffle=True, drop_last=True)
+        trainloader = DataLoader(self.trainset, batch_size=batch_size,
+        shuffle=True, drop_last=True)
 
-		optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-		model.train()
-		model.zero_grad()
-		optimizer.zero_grad()
+        optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+        model.train()
+        model.zero_grad()
+        optimizer.zero_grad()
 
-		train_acc = 0.0
-		train_loss = 0.0
+        train_acc = 0.0
+        train_loss = 0.0
 
         for i, (X, y) in enumerate(trainloader):
 
@@ -225,7 +224,7 @@ class Manager():
     def validate(self, loss_fn, args):
         model = self.model
         valloader = DataLoader(self.valset, batch_size=args.batch_size,
-                               shuffle=False, drop_last=True)
+        shuffle=False, drop_last=True)
         model.eval()
 
         val_acc = 0.0
@@ -254,7 +253,7 @@ class Manager():
     def test(self, args):
         model = self.model
         testloader = DataLoader(self.testset, batch_size=args.batch_size,
-                                shuffle=False, drop_last=True)
+        shuffle=False, drop_last=True)
         model.eval()
 
         test_acc = 0.0
