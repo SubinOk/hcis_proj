@@ -85,7 +85,7 @@ class ConvLSTM(nn.Module):
 
         # changed this from batch_size to 3*batch_size
         hidden = (weight.new(self.num_layers, self.batch_size, self.hidden_dim).zero_(),
-                 weight.new(self.num_layers, self.batch_size, self.hidden_dim).zero_())
+        weight.new(self.num_layers, self.batch_size, self.hidden_dim).zero_())
 
         return hidden
 
@@ -109,7 +109,7 @@ class LSTM(nn.Module):
 
     def init_hidden(self):
         return (torch.zeros(self.num_layers, self.batch_size, self.hidden_dim),
-                torch.zeros(self.num_layers, self.batch_size, self.hidden_dim))
+        torch.zeros(self.num_layers, self.batch_size, self.hidden_dim))
 
     def forward(self, x):
         lstm_out, self.hidden = self.lstm(x, self.hidden)
@@ -157,36 +157,36 @@ class Manager():
         # Select the model type
         if args.model == 'ConvLSTM':
             self.model = ConvLSTM(args.input_dim, args.hid_dim, args.y_frames, args.n_layers, args.n_filters,
-                             args.filter_size, args.batch_size,
-                             args.dropout, args.use_bn, args.str_len)
+             args.filter_size, args.batch_size,
+             args.dropout, args.use_bn, args.str_len)
         elif args.model == 'LSTM':
             self.model = LSTM(args.input_dim, args.hid_dim, args.y_frames, args.n_layers, args.batch_size, args.dropout,
-                         args.use_bn)
+                              args.use_bn)
         elif args.model == 'CNN':
             self.model = Conv1D(args.input_dim, args.y_frames, args.n_filters, args.filter_size, args.batch_size,
-                           args.dropout)
+                                args.dropout)
         else:
             raise ValueError('In-valid model choice')
 
         self.model.to(self.device)
 
         self.pbounds = {
-            'learning_rate': args.lr,
-            'batch_size': args.batch_size
+        'learning_rate': args.lr,
+        'batch_size': args.batch_size
         }
 
         self.bayes_optimizer = BayesianOptimization(
-            f=self.train,
-            pbounds=self.pbounds
+        f=self.train,
+        pbounds=self.pbounds
         )
 
-	def train(self, learning_rate, batch_size):
-    model = self.model
+    def train(self, learning_rate, batch_size):
+        model = self.model
         batch_size = round(batch_size)
         loss_fn = torch.nn.CrossEntropyLoss()
 
         trainloader = DataLoader(self.trainset, batch_size=batch_size,
-                                 shuffle=True, drop_last=True)
+             shuffle=True, drop_last=True)
 
         optimizer = optim.Adam(model.parameters(), lr=learning_rate)
         model.train()
@@ -223,8 +223,7 @@ class Manager():
 
     def validate(self, loss_fn, args):
         model = self.model
-        valloader = DataLoader(self.valset,
-                               batch_size=args.batch_size,
+        valloader = DataLoader(self.valset, batch_size=args.batch_size,
                                shuffle=False, drop_last=True)
         model.eval()
 
@@ -248,13 +247,13 @@ class Manager():
         val_loss = val_loss / len(valloader)
         val_acc = val_acc / len(valloader)
         val_acc = float(val_acc)
+
         return val_loss, val_acc
 
     def test(self, args):
         model = self.model
-        testloader = DataLoader(self.testset,
-                               batch_size=args.batch_size,
-                               shuffle=False, drop_last=True)
+        testloader = DataLoader(self.testset, batch_size=args.batch_size,
+                                shuffle=False, drop_last=True)
         model.eval()
 
         test_acc = 0.0
@@ -302,7 +301,7 @@ def experiment(mode, args):
             # ============================ #
             te = time.time()
             print(
-                'Epoch {}, Acc: {:2.2f}, Loss: {:2.5f}. Took {:2.2f} sec'.format(epoch, val_acc, val_loss, te - ts))
+            'Epoch {}, Acc: {:2.2f}, Loss: {:2.5f}. Took {:2.2f} sec'.format(epoch, val_acc, val_loss, te - ts))
 
     if args.mode == 'test':
         test_acc = manager.test(model, args)
