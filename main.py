@@ -44,15 +44,14 @@ args.epoch = 2
 
 args.init_points = 2
 args.n_iter = 8
+args.inference_batch_size = 128
 # ================================= #
 
-md_num = int(input("Enter the number of setting(1: train, 2: val, 3: test): "))
+md_num = int(input("Enter the number of setting(1: train, 2: test): "))
 
 if md_num == 1:
     args.mode = 'train'
 elif md_num == 2:
-    args.mode = 'val'
-elif md_num == 3:
     args.mode = 'test'
 else:
     raise ValueError('In-valid mode choice')

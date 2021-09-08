@@ -10,7 +10,7 @@ import dataset
 
 class ConvLSTM(nn.Module):
 
-    def __init__(self, input_dim, hidden_dim, output_dim, num_layers, num_filters, filter_size, batch_size, dropout, use_bn, window_len):
+    def __init__(self, input_dim, hidden_dim, output_dim, num_layers, num_filters, filter_size, dropout, use_bn, window_len):
 
         super(ConvLSTM, self).__init__()
         self.input_dim = input_dim
@@ -20,7 +20,6 @@ class ConvLSTM(nn.Module):
         self.num_layers = num_layers
         self.num_filters = num_filters
         self.filter_size = filter_size
-        self.batch_size = batch_size
 
         self.dropout = dropout
         self.use_bn = use_bn
@@ -43,9 +42,25 @@ class ConvLSTM(nn.Module):
         self.fc = nn.Linear(hidden_dim, output_dim)
         self.dropout = nn.Dropout(dropout)
 
+    def init_hidden(self, input_shape):
+        '''
+        Initializes hidden state
+
+        Create two new tensors with sizes n_layers x batch_size x n_hidden,
+        initialized to zero, for hidden state and cell state of LSTM
+        '''
+        weight = next(self.parameters()).data
+
+        # changed this from batch_size to 3*batch_size
+        hidden = (weight.new(self.num_layers, input_shape[0], self.hidden_dim).zero_(),
+        weight.new(self.num_layers, input_shape[0], self.hidden_dim).zero_())
+
+        return hidden
+
     def forward(self, x):
 
         # Layer 1 - flatten (see -1)
+        self.hidden = self.init_hidden(x.shape)
         x = x.view(-1, self.input_dim, self.window_len)
 
         # Layers 2-5 - RELU
@@ -67,31 +82,16 @@ class ConvLSTM(nn.Module):
         # Layers 8 - flatten, fully connected for softmax. Not sure what dropout does here
         x = x.contiguous().view(-1, self.hidden_dim)
         x = self.dropout(x)
-        x = self.fc(x)
+        out = self.fc(x[:, -1])
 
-        # View flattened output layer
-        out = x.view(self.batch_size, -1, self.output_dim)[:, -1, :]
+        # out = out.view(self.batch_size, -1, self.output_dim)[:, -1, :]
 
         return out
 
-    def init_hidden(self):
-        '''
-        Initializes hidden state
-
-        Create two new tensors with sizes n_layers x batch_size x n_hidden,
-        initialized to zero, for hidden state and cell state of LSTM
-        '''
-        weight = next(self.parameters()).data
-
-        # changed this from batch_size to 3*batch_size
-        hidden = (weight.new(self.num_layers, self.batch_size, self.hidden_dim).zero_(),
-        weight.new(self.num_layers, self.batch_size, self.hidden_dim).zero_())
-
-        return hidden
 
 class LSTM(nn.Module):
 
-    def __init__(self, input_dim, hidden_dim, output_dim, num_layers, batch_size, dropout, use_bn):
+    def __init__(self, input_dim, hidden_dim, output_dim, num_layers, dropout, use_bn):
 
         super(LSTM, self).__init__()
         self.input_dim = input_dim
@@ -99,31 +99,29 @@ class LSTM(nn.Module):
         self.output_dim = output_dim
         self.num_layers = num_layers
 
-        self.batch_size = batch_size
         self.dropout = dropout
         self.use_bn = use_bn
 
         self.lstm = nn.LSTM(self.input_dim, self.hidden_dim, self.num_layers)
-        self.hidden = self.init_hidden()
         self.fc = nn.Linear(self.hidden_dim, output_dim)
 
-    def init_hidden(self):
-        return (torch.zeros(self.num_layers, self.batch_size, self.hidden_dim),
-        torch.zeros(self.num_layers, self.batch_size, self.hidden_dim))
+    def init_hidden(self, input_shape):
+        return (torch.zeros(self.num_layers, input_shape[0], self.hidden_dim),
+        torch.zeros(self.num_layers, input_shape[0], self.hidden_dim))
 
     def forward(self, x):
+        self.hidden = self.init_hidden(x.shape)
         lstm_out, self.hidden = self.lstm(x, self.hidden)
         out = self.fc(lstm_out[:, -1])
         return out
 
 class CNN(nn.Module):
-    def __init__(self, input_dim, output_dim, num_filters, filter_size, batch_size, dropout):
+    def __init__(self, input_dim, output_dim, num_filters, filter_size, dropout):
         super(CNN, self).__init__()
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.num_filters = num_filters
         self.filter_size = filter_size
-        self.batch_size = batch_size
         self.dropout = dropout
 
         self.conv1 = nn.Conv1d(input_dim, num_filters, filter_size)
@@ -142,8 +140,8 @@ class CNN(nn.Module):
 
         x = x.view(1, -1, self.num_filters)
         x = self.dropout(x)
-        x = self.fc(x)
-        out = x.view(self.batch_size, -1, self.output_dim)[:, -1, :]
+        out = self.fc(x[:, -1])
+        # out = out.view(self.batch_size, -1, self.output_dim)[:, -1, :]
 
         return out
 
@@ -157,13 +155,11 @@ class Manager():
         # Select the model type
         if args.model == 'ConvLSTM':
             self.model = ConvLSTM(args.input_dim, args.hid_dim, args.y_frames, args.n_layers, args.n_filters,
-                                  args.filter_size, args.batch_size, args.dropout, args.use_bn, args.str_len)
+                                  args.filter_size, args.dropout, args.use_bn, args.str_len)
         elif args.model == 'LSTM':
-            self.model = LSTM(args.input_dim, args.hid_dim, args.y_frames, args.n_layers, args.batch_size,
-                              args.dropout, args.use_bn)
+            self.model = LSTM(args.input_dim, args.hid_dim, args.y_frames, args.n_layers, args.dropout, args.use_bn)
         elif args.model == 'CNN':
-            self.model = Conv1D(args.input_dim, args.y_frames, args.n_filters, args.filter_size, args.batch_size,
-                                args.dropout)
+            self.model = Conv1D(args.input_dim, args.y_frames, args.n_filters, args.filter_size, args.dropout)
         else:
             raise ValueError('In-valid model choice')
 
@@ -252,8 +248,8 @@ class Manager():
 
     def test(self, args):
         model = self.model
-        testloader = DataLoader(self.testset, batch_size=args.batch_size,
-        shuffle=False, drop_last=True)
+        testloader = DataLoader(self.testset, batch_size=args.inference_batch_size,
+                                shuffle=False, drop_last=True)
         model.eval()
 
         test_acc = 0.0
@@ -285,36 +281,39 @@ def experiment(mode, args):
     loss_fn = torch.nn.CrossEntropyLoss()
     manager = Manager(args)
 
-    for epoch in range(args.epoch):  # loop over the dataset multiple time
-        if args.mode == 'train':
-            print('Start training ... ')
-            exp.save_exp_result(manager)
-            manager.bayes_optimizer.maximize(args.init_points, args.n_iter, acq='ei', xi=0.01)
-
-        elif args.mode == 'val':
+    if args.mode == 'train':
+        for epoch in range(args.epoch):  # loop over the dataset multiple times
             ts = time.time()
+            print('Start training ... ')
+            manager.bayes_optimizer.maximize(args.init_points, args.n_iter, acq='ei', xi=0.01)
+            exp.save_exp_result(manager)
+
             print('Start validation ... ')
-            val_loss, val_acc = manager.validate(model, loss_fn, args)
+            val_loss, val_acc = manager.validate(loss_fn, args)
+            te = time.time()
+
             # ====== Add Epoch Data ====== #
+            train_losses.append(train_loss)
             val_losses.append(val_loss)
+            train_accs.append(train_acc)
             val_accs.append(val_acc)
             # ============================ #
-            te = time.time()
-            print(
-            'Epoch {}, Acc: {:2.2f}, Loss: {:2.5f}. Took {:2.2f} sec'.format(epoch, val_acc, val_loss, te - ts))
 
-    if args.mode == 'test':
-        test_acc = manager.test(model, args)
+            print(
+                'Epoch {}, Acc(train/val): {:2.2f}/{:2.2f}, Loss(train/val) {:2.5f}/{:2.5f}. Took {:2.2f} sec'.format(epoch, train_acc, val_acc, train_loss, val_loss, te - ts))
+    elif args.mode == 'test':
+        test_acc = manager.test(args)
 
     # ======= Add Result to Dictionary ======= #
     result = {}
-
-    if args.mode == 'val':
+    if args.mode == 'train':
+        result['train_losses'] = train_losses
         result['val_losses'] = val_losses
+        result['train_accs'] = train_accs
         result['val_accs'] = val_accs
+        result['train_acc'] = train_acc
         result['val_acc'] = val_acc
-    else:
+    elif args.mode == 'test':
         result['test_acc'] = test_acc
 
     return vars(args), result
-	
