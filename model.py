@@ -180,6 +180,7 @@ class Manager():
         )
 
     def train(self, learning_rate, batch_size):
+
         model = self.model
         batch_size = round(batch_size)
         loss_fn = torch.nn.CrossEntropyLoss()
@@ -316,3 +317,4 @@ def experiment(mode, args):
         result['test_acc'] = test_acc
 
     return vars(args), result
+	
