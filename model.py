@@ -181,7 +181,7 @@ class Manager():
         )
 
 	def train(self, learning_rate, batch_size):
-        model = self.model
+    model = self.model
         batch_size = round(batch_size)
         loss_fn = torch.nn.CrossEntropyLoss()
 
