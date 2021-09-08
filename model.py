@@ -181,6 +181,7 @@ class Manager():
         )
 		
 	def train(self, learning_rate, batch_size):
+        # Change the indent setting as 4 spaces
         model = self.model
         batch_size = round(batch_size)
         loss_fn = torch.nn.CrossEntropyLoss()
