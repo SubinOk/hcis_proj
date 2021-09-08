@@ -182,6 +182,7 @@ class Manager():
 		
 	def train(self, learning_rate, batch_size):
         model = self.model
+        # change for indent
         batch_size = round(batch_size)
         loss_fn = torch.nn.CrossEntropyLoss()
 
