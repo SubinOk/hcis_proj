@@ -156,17 +156,16 @@ class Manager():
 
         # Select the model type
         if args.model == 'ConvLSTM':
-        self.model = ConvLSTM(args.input_dim, args.hid_dim, args.y_frames, args.n_layers, args.n_filters,
-        args.filter_size, args.batch_size,
-        args.dropout, args.use_bn, args.str_len)
+            self.model = ConvLSTM(args.input_dim, args.hid_dim, args.y_frames, args.n_layers, args.n_filters,
+                                  args.filter_size, args.batch_size, args.dropout, args.use_bn, args.str_len)
         elif args.model == 'LSTM':
-        self.model = LSTM(args.input_dim, args.hid_dim, args.y_frames, args.n_layers, args.batch_size, args.dropout,
-        args.use_bn)
+            self.model = LSTM(args.input_dim, args.hid_dim, args.y_frames, args.n_layers, args.batch_size,
+                              args.dropout, args.use_bn)
         elif args.model == 'CNN':
-        self.model = Conv1D(args.input_dim, args.y_frames, args.n_filters, args.filter_size, args.batch_size,
-        args.dropout)
+            self.model = Conv1D(args.input_dim, args.y_frames, args.n_filters, args.filter_size, args.batch_size,
+                                args.dropout)
         else:
-        raise ValueError('In-valid model choice')
+            raise ValueError('In-valid model choice')
 
         self.model.to(self.device)
 
