@@ -9,7 +9,7 @@ import exp
 import dataset
 
 class ConvLSTM(nn.Module):
-
+	
     def __init__(self, input_dim, hidden_dim, output_dim, num_layers, num_filters, filter_size, batch_size, dropout, use_bn, window_len):
 
         super(ConvLSTM, self).__init__()
@@ -179,22 +179,22 @@ class Manager():
         f=self.train,
         pbounds=self.pbounds
         )
-
-    def train(self, learning_rate, batch_size):
+		
+	def train(self, learning_rate, batch_size):
         model = self.model
         batch_size = round(batch_size)
         loss_fn = torch.nn.CrossEntropyLoss()
 
-        trainloader = DataLoader(self.trainset, batch_size=batch_size,
-             shuffle=True, drop_last=True)
+        trainloader = DataLoader(self.trainset, batch_size=batch_size, 
+								 shuffle=True, drop_last=True)
 
-        optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-        model.train()
-        model.zero_grad()
-        optimizer.zero_grad()
+		optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+		model.train()
+		model.zero_grad()
+		optimizer.zero_grad()
 
-        train_acc = 0.0
-        train_loss = 0.0
+		train_acc = 0.0
+		train_loss = 0.0
 
         for i, (X, y) in enumerate(trainloader):
 
