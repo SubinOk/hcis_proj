@@ -30,7 +30,7 @@ args.use_bn = True
 
 # ====== Optimizer & Training ====== #
 args.optim = 'Adam'
-args.model = 'ConvLSTM'
+args.model = 'LSTM'
 # args.lr = (0.0001, 0.001)
 # args.epoch = 2
 
