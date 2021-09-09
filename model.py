@@ -145,7 +145,7 @@ class CNN(nn.Module):
         x = F.relu(self.conv3(x))
 
         x = x.view(1, -1, self.num_filters)
-        x = self.dropout(x)
+        #x = self.dropout(x)
         out = self.fc(x[:, -1])
         # out = out.view(self.batch_size, -1, self.output_dim)[:, -1, :]
 
@@ -185,6 +185,7 @@ class Manager():
 
         model = self.model
         batch_size = round(batch_size)
+        print('batch size: ', batch_size)
         loss_fn = torch.nn.CrossEntropyLoss()
 
         trainloader = DataLoader(self.trainset, batch_size=batch_size,
