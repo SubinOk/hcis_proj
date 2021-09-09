@@ -5,11 +5,12 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 import time
 from bayes_opt import BayesianOptimization
-#import bayes_optimizer
+import exp
+import dataset
 
 class ConvLSTM(nn.Module):
 
-    def __init__(self, input_dim, hidden_dim, output_dim, num_layers, num_filters, filter_size, batch_size, dropout, use_bn, window_len):
+    def __init__(self, input_dim, hidden_dim, output_dim, num_layers, num_filters, filter_size, dropout, use_bn, window_len):
 
         super(ConvLSTM, self).__init__()
         self.input_dim = input_dim
@@ -19,7 +20,6 @@ class ConvLSTM(nn.Module):
         self.num_layers = num_layers
         self.num_filters = num_filters
         self.filter_size = filter_size
-        self.batch_size = batch_size
 
         self.dropout = dropout
         self.use_bn = use_bn
@@ -32,19 +32,35 @@ class ConvLSTM(nn.Module):
         self.conv4 = nn.Conv1d(num_filters, num_filters, filter_size)
 
         # Layers 6-7 - each dense layer has LSTM cells
-        self.lstm1 = nn.LSTM(num_filters, hidden_dim, num_layers)
-        self.lstm2 = nn.LSTM(hidden_dim, hidden_dim, num_layers)
-        self.lstm3 = nn.LSTM(hidden_dim, hidden_dim, num_layers)
-        self.lstm4 = nn.LSTM(hidden_dim, hidden_dim, num_layers)
-        self.lstm5 = nn.LSTM(hidden_dim, hidden_dim, num_layers)
+        self.lstm1 = nn.LSTM(num_filters, hidden_dim, num_layers, batch_first=True)
+        self.lstm2 = nn.LSTM(hidden_dim, hidden_dim, num_layers, batch_first=True)
+        self.lstm3 = nn.LSTM(hidden_dim, hidden_dim, num_layers, batch_first=True)
+        self.lstm4 = nn.LSTM(hidden_dim, hidden_dim, num_layers, batch_first=True)
+        self.lstm5 = nn.LSTM(hidden_dim, hidden_dim, num_layers, batch_first=True)
 
         # Layer 9 - prepare for softmax
         self.fc = nn.Linear(hidden_dim, output_dim)
         self.dropout = nn.Dropout(dropout)
 
+    def init_hidden(self, input_shape):
+        '''
+        Initializes hidden state
+
+        Create two new tensors with sizes n_layers x batch_size x n_hidden,
+        initialized to zero, for hidden state and cell state of LSTM
+        '''
+        weight = next(self.parameters()).data
+
+        # changed this from batch_size to 3*batch_size
+        hidden = (weight.new(self.num_layers, input_shape[0], self.hidden_dim).zero_(),
+        weight.new(self.num_layers, input_shape[0], self.hidden_dim).zero_())
+
+        return hidden
+
     def forward(self, x):
 
         # Layer 1 - flatten (see -1)
+        self.hidden = self.init_hidden(x.shape)
         x = x.view(-1, self.input_dim, self.window_len)
 
         # Layers 2-5 - RELU
@@ -66,32 +82,16 @@ class ConvLSTM(nn.Module):
         # Layers 8 - flatten, fully connected for softmax. Not sure what dropout does here
         x = x.contiguous().view(-1, self.hidden_dim)
         x = self.dropout(x)
-        x = self.fc(x)
+        out = self.fc(x[:, -1])
 
-        # View flattened output layer
-        out = x.view(self.batch_size, -1, self.output_dim)[:, -1, :]
+        # out = out.view(self.batch_size, -1, self.output_dim)[:, -1, :]
 
         return out
-
-    def init_hidden(self):
-        '''
-        Initializes hidden state
-
-        Create two new tensors with sizes n_layers x batch_size x n_hidden,
-        initialized to zero, for hidden state and cell state of LSTM
-        '''
-        weight = next(self.parameters()).data
-
-        # changed this from batch_size to 3*batch_size
-        hidden = (weight.new(self.num_layers, self.batch_size, self.hidden_dim).zero_(),
-                 weight.new(self.num_layers, self.batch_size, self.hidden_dim).zero_())
-
-        return hidden
 
 
 class LSTM(nn.Module):
 
-    def __init__(self, input_dim, hidden_dim, output_dim, num_layers, batch_size, dropout, use_bn):
+    def __init__(self, input_dim, hidden_dim, output_dim, num_layers, dropout, use_bn):
 
         super(LSTM, self).__init__()
         self.input_dim = input_dim
@@ -99,125 +99,59 @@ class LSTM(nn.Module):
         self.output_dim = output_dim
         self.num_layers = num_layers
 
-        self.batch_size = batch_size
         self.dropout = dropout
         self.use_bn = use_bn
 
-        self.lstm = nn.LSTM(self.input_dim, self.hidden_dim, self.num_layers)
-        self.hidden = self.init_hidden()
+        self.lstm = nn.LSTM(self.input_dim, self.hidden_dim, self.num_layers, batch_first=True)
         self.fc = nn.Linear(self.hidden_dim, output_dim)
 
-    def init_hidden(self):
-        return (torch.zeros(self.num_layers, self.batch_size, self.hidden_dim),
-                torch.zeros(self.num_layers, self.batch_size, self.hidden_dim))
+    def init_hidden(self, input_shape):
+        return (torch.zeros(self.num_layers, input_shape[0], self.hidden_dim),
+        torch.zeros(self.num_layers, input_shape[0], self.hidden_dim))
 
     def forward(self, x):
+        self.hidden = self.init_hidden(x.shape)
         lstm_out, self.hidden = self.lstm(x, self.hidden)
         out = self.fc(lstm_out[:, -1])
         return out
 
-
-class Conv1D(nn.Module):
-
-    def __init__(self, input_dim, output_dim, num_layers, num_filters, filter_size, batch_size, dropout, use_bn, window_len):
-
-        super(Conv1D, self).__init__()
-        self.input_dim = input_dim
-        self.output_dim = output_dim
-
-        self.num_layers = num_layers
-        self.num_filters = num_filters
-        self.filter_size = filter_size
-        self.batch_size = batch_size
-        self.window_len = window_len
-
-        self.dropout = dropout
-        self.use_bn = use_bn
-
-        # Layers 2-5
-        self.conv1 = nn.Conv1d(input_dim, num_filters, filter_size)
-        self.conv2 = nn.Conv1d(num_filters, num_filters, filter_size)
-        self.conv3 = nn.Conv1d(num_filters, num_filters, filter_size)
-        self.conv4 = nn.Conv1d(num_filters, num_filters, filter_size)
-
-        # Layer 9 - prepare for softmax
-        self.fc = nn.Linear(num_filters, output_dim)
-        self.dropout = nn.Dropout(dropout)
-
-    def forward(self, x):
-
-        # Layer 1 - flatten (see -1)
-        x = x.view(-1, self.input_dim, self.window_len)
-
-        # Layers 2-5 - RELU
-        x = F.relu(self.conv1(x))
-        x = F.relu(self.conv2(x))
-        x = F.relu(self.conv3(x))
-        x = F.relu(self.conv4(x))
-
-        # Layers 5 and 6 - flatten
-        x = x.view(1, -1, self.num_filters)
-
-        # Layers 8 - flatten, fully connected for softmax. Not sure what dropout does here
-        x = self.dropout(x)
-        x = self.fc(x)
-
-        # View flattened output layer
-        out = x.view(self.batch_size, -1, self.output_dim)[:, -1, :]
-
-        return out
-
 class CNN(nn.Module):
-<<<<<<< Updated upstream
-    def __init__(self, input_dim, output_dim, num_filters, filter_size, batch_size, dropout):
-=======
     def __init__(self, input_dim, output_dim, num_filters, filter_size, dropout, window_len):
->>>>>>> Stashed changes
         super(CNN, self).__init__()
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.num_filters = num_filters
         self.filter_size = filter_size
-        self.batch_size = batch_size
         self.dropout = dropout
         self.window_len = window_len
 
-<<<<<<< Updated upstream
-        self.conv1 = nn.Conv1d(input_dim, num_filters/4, filter_size)
-        self.pool = nn.MaxPool2d(2, 2)
-        self.conv2 = nn.Conv1d(num_filters/4, num_filters, filter_size)
-        self.conv3 = nn.Conv1d(num_filters, num_filters, filter_size)
-=======
         self.conv1 = nn.Conv1d(input_dim, num_filters, filter_size, padding=1)
         self.pool = nn.MaxPool2d(2, 2)
         self.conv2 = nn.Conv1d(num_filters, num_filters, filter_size, padding=1)
         self.conv3 = nn.Conv1d(num_filters, num_filters, filter_size, padding=1)
->>>>>>> Stashed changes
 
         self.fc = nn.Linear(num_filters, output_dim)
 
     def forward(self, x):
         x = x.view(-1, self.input_dim, self.window_len)
-
+        '''
         x = self.pool(F.relu(self.conv1(x)))
         x = self.pool(F.relu(self.conv2(x)))
         x = self.pool(F.relu(self.conv3(x)))
+        위의 식으로 코드 돌리면 filter 개수가 절반이 되어서 에러가 남
+        '''
+        x = F.relu(self.conv1(x))
+        x = F.relu(self.conv2(x))
+        x = F.relu(self.conv3(x))
 
         x = x.view(1, -1, self.num_filters)
         x = self.dropout(x)
-        x = self.fc(x)
-        out = x.view(self.batch_size, -1, self.output_dim)[:, -1, :]
+        out = self.fc(x[:, -1])
+        # out = out.view(self.batch_size, -1, self.output_dim)[:, -1, :]
 
         return out
 
 class Manager():
-<<<<<<< Updated upstream
-    def __init__(self):
-
-        print("Loading dataset...")
-        #lr = (0.001,0.01)
-        #batch_size = (16,128)
-=======
     def __init__(self, args):
         self.trainset = dataset.NumDataset('data/FakeData.csv', args.x_frames, args.y_frames, args.str_len)
         self.valset = dataset.NumDataset('data/FakeData.csv', args.x_frames, args.y_frames, args.str_len)
@@ -236,37 +170,27 @@ class Manager():
             raise ValueError('In-valid model choice')
 
         self.model.to(self.device)
->>>>>>> Stashed changes
 
         self.pbounds = {
-            'learning_rate': lr,
-            'batch_size': batch_size
+        'learning_rate': args.lr,
+        'batch_size': args.batch_size
         }
 
         self.bayes_optimizer = BayesianOptimization(
-            f=self.train,
-            pbounds=self.pbounds,
-            random_state = 777
+        f=self.train,
+        pbounds=self.pbounds
         )
 
-<<<<<<< Updated upstream
-    def train(model, partition, optimizer, loss_fn, args):
-        trainloader = DataLoader(partition['train'],
-                                 batch_size=round(batch_size),
-                                 shuffle=True, drop_last=True)
-=======
     def train(self, learning_rate, batch_size):
 
         model = self.model
         batch_size = round(batch_size)
-        print('train batch size:', batch_size)
         loss_fn = torch.nn.CrossEntropyLoss()
 
         trainloader = DataLoader(self.trainset, batch_size=batch_size,
         shuffle=True, drop_last=True)
 
         optimizer = optim.Adam(model.parameters(), lr=learning_rate)
->>>>>>> Stashed changes
         model.train()
         model.zero_grad()
         optimizer.zero_grad()
@@ -276,14 +200,12 @@ class Manager():
 
         for i, (X, y) in enumerate(trainloader):
 
-            # print(i, 'Processing Train Data ...')
-
-            X = X.transpose(0, 1).float().to(args.device)
-            y_true = y[:, 0].long().to(args.device)
+            X = X.transpose(0, 1).float().to(self.device)
+            y_true = y[:, 0].long().to(self.device)
 
             model.zero_grad()
             optimizer.zero_grad()
-            if args.model == 'ConvLSTM' or args.model == 'LSTM':
+            if model == 'ConvLSTM' or model == 'LSTM':
                 model.hidden = [hidden.to(args.device) for hidden in model.init_hidden()]
 
             y_pred = model(X)
@@ -299,20 +221,18 @@ class Manager():
         train_acc = train_acc / len(trainloader)
         train_acc = float(train_acc)
 
-        return model, train_loss, train_acc
+        return train_loss, train_acc
 
-    def validate(model, partition, loss_fn, args):
-        valloader = DataLoader(partition['val'],
-                               batch_size=args.batch_size,
-                               shuffle=False, drop_last=True)
+    def validate(self, loss_fn, args):
+        model = self.model
+        valloader = DataLoader(self.valset, batch_size=args.batch_size,
+        shuffle=False, drop_last=True)
         model.eval()
 
         val_acc = 0.0
         val_loss = 0.0
         with torch.no_grad():
             for i, (X, y) in enumerate(valloader):
-
-                # print(i, 'Processing Validation Data ...')
 
                 X = X.transpose(0, 1).float().to(args.device)
                 y_true = y[:, 0].long().to(args.device)
@@ -329,19 +249,18 @@ class Manager():
         val_loss = val_loss / len(valloader)
         val_acc = val_acc / len(valloader)
         val_acc = float(val_acc)
+
         return val_loss, val_acc
 
-    def test(model, partition, args):
-        testloader = DataLoader(partition['test'],
-                               batch_size=args.batch_size,
-                               shuffle=False, drop_last=True)
+    def test(self, args):
+        model = self.model
+        testloader = DataLoader(self.testset, batch_size=args.inference_batch_size,
+                                shuffle=False, drop_last=True)
         model.eval()
 
         test_acc = 0.0
         with torch.no_grad():
             for i, (X, y) in enumerate(testloader):
-
-                # print(i, 'Processing Test Data ...')
 
                 X = X.transpose(0, 1).float().to(args.device)
                 y_true = y[:, 0].long().to(args.device)
@@ -356,34 +275,7 @@ class Manager():
         test_acc = float(test_acc)
         return test_acc
 
-def experiment(partition, args):
-
-    if args.model == 'ConvLSTM':
-        model = ConvLSTM(args.input_dim, args.hid_dim, args.y_frames, args.n_layers, args.n_filters, args.filter_size, args.batch_size,
-                         args.dropout, args.use_bn, args.str_len)
-    elif args.model == 'LSTM':
-        model = LSTM(args.input_dim, args.hid_dim, args.y_frames, args.n_layers, args.batch_size, args.dropout, args.use_bn)
-
-    elif args.model == 'Conv1D':
-        model = Conv1D(args.input_dim, args.y_frames, args.n_layers, args.n_filters, args.filter_size, args.batch_size,
-                       args.dropout, args.use_bn, args.str_len)
-    elif args.model == 'CNN':
-        model = Conv1D(args.input_dim, args.y_frames, args.n_filters, args.filter_size, args.batch_size,
-                       args.dropout)
-    else:
-        raise ValueError('In-valid model choice')
-
-    model.to(args.device)
-    loss_fn = torch.nn.CrossEntropyLoss()
-
-    if args.optim == 'SGD':
-        optimizer = optim.SGD(model.parameters(), lr=args.lr, weight_decay=args.l2)
-    elif args.optim == 'RMSprop':
-        optimizer = optim.RMSprop(model.parameters(), lr=args.lr, weight_decay=args.l2)
-    elif args.optim == 'Adam':
-        optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.l2)
-    else:
-        raise ValueError('In-valid optimizer choice')
+def experiment(mode, args):
 
     # ===== List for epoch-wise data ====== #
     train_losses = []
@@ -392,39 +284,42 @@ def experiment(partition, args):
     val_accs = []
     # ===================================== #
 
-    manager = Manager()
+    loss_fn = torch.nn.CrossEntropyLoss()
+    manager = Manager(args)
 
-    for epoch in range(args.epoch):  # loop over the dataset multiple times
-        ts = time.time()
-        print('Start training ... ')
-        #model, train_loss, train_acc = manager.train(model, partition, optimizer, loss_fn, args)
-        manager.bayes_optimizer.maximize(init_points=2, n_iter=8, acq='ei', xi=0.01)
-        #manager.bayes_optimizer.maximize(init_points=2, n_iter=8, verbose=2, xi=0.01)
-        print('Start validation ... ')
-        #val_loss, val_acc = manager.validate(model, partition, loss_fn, args)
-        te = time.time()
+    if args.mode == 'train':
+        for epoch in range(args.epoch):  # loop over the dataset multiple times
+            ts = time.time()
+            print('Start training ... ')
+            manager.bayes_optimizer.maximize(args.init_points, args.n_iter, acq='ei', xi=0.01)
+            exp.save_exp_result(manager)
 
-        # ====== Add Epoch Data ====== #
-        train_losses.append(train_loss)
-        val_losses.append(val_loss)
-        train_accs.append(train_acc)
-        val_accs.append(val_acc)
-        # ============================ #
+            print('Start validation ... ')
+            val_loss, val_acc = manager.validate(loss_fn, args)
+            te = time.time()
 
-        print(
-            'Epoch {}, Acc(train/val): {:2.2f}/{:2.2f}, Loss(train/val) {:2.5f}/{:2.5f}. Took {:2.2f} sec'.format(epoch, train_acc, val_acc, train_loss, val_loss, te - ts))
+            # ====== Add Epoch Data ====== #
+            train_losses.append(train_loss)
+            val_losses.append(val_loss)
+            train_accs.append(train_acc)
+            val_accs.append(val_acc)
+            # ============================ #
 
-    test_acc = test(model, partition, args)
-    manager.test(args.model_name, args.batch_size)
-    #manager.test(args.model_name, batch_size=args.inference_batch_size)
+            print(
+                'Epoch {}, Acc(train/val): {:2.2f}/{:2.2f}, Loss(train/val) {:2.5f}/{:2.5f}. Took {:2.2f} sec'.format(epoch, train_acc, val_acc, train_loss, val_loss, te - ts))
+    elif args.mode == 'test':
+        test_acc = manager.test(args)
+
     # ======= Add Result to Dictionary ======= #
     result = {}
-    result['train_losses'] = train_losses
-    result['val_losses'] = val_losses
-    result['train_accs'] = train_accs
-    result['val_accs'] = val_accs
-    result['train_acc'] = train_acc
-    result['val_acc'] = val_acc
-    result['test_acc'] = test_acc
+    if args.mode == 'train':
+        result['train_losses'] = train_losses
+        result['val_losses'] = val_losses
+        result['train_accs'] = train_accs
+        result['val_accs'] = val_accs
+        result['train_acc'] = train_acc
+        result['val_acc'] = val_acc
+    elif args.mode == 'test':
+        result['test_acc'] = test_acc
 
     return vars(args), result
