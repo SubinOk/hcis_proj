@@ -32,11 +32,11 @@ class ConvLSTM(nn.Module):
         self.conv4 = nn.Conv1d(num_filters, num_filters, filter_size)
 
         # Layers 6-7 - each dense layer has LSTM cells
-        self.lstm1 = nn.LSTM(num_filters, hidden_dim, num_layers)
-        self.lstm2 = nn.LSTM(hidden_dim, hidden_dim, num_layers)
-        self.lstm3 = nn.LSTM(hidden_dim, hidden_dim, num_layers)
-        self.lstm4 = nn.LSTM(hidden_dim, hidden_dim, num_layers)
-        self.lstm5 = nn.LSTM(hidden_dim, hidden_dim, num_layers)
+        self.lstm1 = nn.LSTM(num_filters, hidden_dim, num_layers, batch_first=True)
+        self.lstm2 = nn.LSTM(hidden_dim, hidden_dim, num_layers, batch_first=True)
+        self.lstm3 = nn.LSTM(hidden_dim, hidden_dim, num_layers, batch_first=True)
+        self.lstm4 = nn.LSTM(hidden_dim, hidden_dim, num_layers, batch_first=True)
+        self.lstm5 = nn.LSTM(hidden_dim, hidden_dim, num_layers, batch_first=True)
 
         # Layer 9 - prepare for softmax
         self.fc = nn.Linear(hidden_dim, output_dim)
@@ -102,7 +102,7 @@ class LSTM(nn.Module):
         self.dropout = dropout
         self.use_bn = use_bn
 
-        self.lstm = nn.LSTM(self.input_dim, self.hidden_dim, self.num_layers)
+        self.lstm = nn.LSTM(self.input_dim, self.hidden_dim, self.num_layers, batch_first=True)
         self.fc = nn.Linear(self.hidden_dim, output_dim)
 
     def init_hidden(self, input_shape):
