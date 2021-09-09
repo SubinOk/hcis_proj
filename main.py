@@ -38,10 +38,16 @@ args.use_bn = True
 
 # ====== Optimizer & Training ====== #
 args.optim = 'Adam'
+<<<<<<< Updated upstream
 args.model = 'Conv1D'
 args.lr = 0.001
 #args.lr = (0.0001,0.001)
 args.epoch = 2
+=======
+args.model = 'CNN'
+# args.lr = (0.0001, 0.001)
+# args.epoch = 2
+>>>>>>> Stashed changes
 
 # ====== Experiment Variable ====== #
 name_var1 = 'lr'

@@ -168,7 +168,11 @@ class Conv1D(nn.Module):
         return out
 
 class CNN(nn.Module):
+<<<<<<< Updated upstream
     def __init__(self, input_dim, output_dim, num_filters, filter_size, batch_size, dropout):
+=======
+    def __init__(self, input_dim, output_dim, num_filters, filter_size, dropout, window_len):
+>>>>>>> Stashed changes
         super(CNN, self).__init__()
         self.input_dim = input_dim
         self.output_dim = output_dim
@@ -176,11 +180,19 @@ class CNN(nn.Module):
         self.filter_size = filter_size
         self.batch_size = batch_size
         self.dropout = dropout
+        self.window_len = window_len
 
+<<<<<<< Updated upstream
         self.conv1 = nn.Conv1d(input_dim, num_filters/4, filter_size)
         self.pool = nn.MaxPool2d(2, 2)
         self.conv2 = nn.Conv1d(num_filters/4, num_filters, filter_size)
         self.conv3 = nn.Conv1d(num_filters, num_filters, filter_size)
+=======
+        self.conv1 = nn.Conv1d(input_dim, num_filters, filter_size, padding=1)
+        self.pool = nn.MaxPool2d(2, 2)
+        self.conv2 = nn.Conv1d(num_filters, num_filters, filter_size, padding=1)
+        self.conv3 = nn.Conv1d(num_filters, num_filters, filter_size, padding=1)
+>>>>>>> Stashed changes
 
         self.fc = nn.Linear(num_filters, output_dim)
 
@@ -199,11 +211,32 @@ class CNN(nn.Module):
         return out
 
 class Manager():
+<<<<<<< Updated upstream
     def __init__(self):
 
         print("Loading dataset...")
         #lr = (0.001,0.01)
         #batch_size = (16,128)
+=======
+    def __init__(self, args):
+        self.trainset = dataset.NumDataset('data/FakeData.csv', args.x_frames, args.y_frames, args.str_len)
+        self.valset = dataset.NumDataset('data/FakeData.csv', args.x_frames, args.y_frames, args.str_len)
+        self.testset = dataset.NumDataset('data/FakeData.csv', args.x_frames, args.y_frames, args.str_len)
+        self.device = args.device
+
+        # Select the model type
+        if args.model == 'ConvLSTM':
+            self.model = ConvLSTM(args.input_dim, args.hid_dim, args.y_frames, args.n_layers, args.n_filters,
+                                  args.filter_size, args.dropout, args.use_bn, args.str_len)
+        elif args.model == 'LSTM':
+            self.model = LSTM(args.input_dim, args.hid_dim, args.y_frames, args.n_layers, args.dropout, args.use_bn)
+        elif args.model == 'CNN':
+            self.model = CNN(args.input_dim, args.y_frames, args.n_filters, args.filter_size, args.dropout, args.str_len)
+        else:
+            raise ValueError('In-valid model choice')
+
+        self.model.to(self.device)
+>>>>>>> Stashed changes
 
         self.pbounds = {
             'learning_rate': lr,
@@ -216,10 +249,24 @@ class Manager():
             random_state = 777
         )
 
+<<<<<<< Updated upstream
     def train(model, partition, optimizer, loss_fn, args):
         trainloader = DataLoader(partition['train'],
                                  batch_size=round(batch_size),
                                  shuffle=True, drop_last=True)
+=======
+    def train(self, learning_rate, batch_size):
+
+        model = self.model
+        batch_size = round(batch_size)
+        print('train batch size:', batch_size)
+        loss_fn = torch.nn.CrossEntropyLoss()
+
+        trainloader = DataLoader(self.trainset, batch_size=batch_size,
+        shuffle=True, drop_last=True)
+
+        optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+>>>>>>> Stashed changes
         model.train()
         model.zero_grad()
         optimizer.zero_grad()
