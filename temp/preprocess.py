@@ -127,3 +127,22 @@ def pre_plus_success():
 
     merge = pd.merge(final_suc, other, on='Time')
     merge.to_csv('data/ProcessedData2.csv', index=False)
+
+def sensor2img(interval, stride):
+
+    sensors = pd.read_csv('data/ProcessedData.csv')
+    starttime = sensors['Time'][0]
+    endtime = sensors['Time'][len(raw_acc) - 1]
+
+    time = sensors['Time']
+    cnt = starttime
+
+    while (cnt + interval) < endtime:
+        ub = time > cnt
+        lb = time < (cnt + interval)
+        time = time.loc[ub & lb]
+        """
+        plt.plot(time, y-axis value, color)
+        plt.savefig('location/name.png')
+        """
+        cnt += stride
