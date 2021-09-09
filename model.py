@@ -116,30 +116,36 @@ class LSTM(nn.Module):
         return out
 
 class CNN(nn.Module):
-    def __init__(self, input_dim, output_dim, num_filters, filter_size, dropout):
+    def __init__(self, input_dim, output_dim, num_filters, filter_size, dropout, window_len):
         super(CNN, self).__init__()
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.num_filters = num_filters
         self.filter_size = filter_size
         self.dropout = dropout
+        self.window_len = window_len
 
-        self.conv1 = nn.Conv1d(input_dim, num_filters, filter_size)
+        self.conv1 = nn.Conv1d(input_dim, num_filters, filter_size, padding=1)
         self.pool = nn.MaxPool2d(2, 2)
-        self.conv2 = nn.Conv1d(num_filters, num_filters, filter_size)
-        self.conv3 = nn.Conv1d(num_filters, num_filters, filter_size)
+        self.conv2 = nn.Conv1d(num_filters, num_filters, filter_size, padding=1)
+        self.conv3 = nn.Conv1d(num_filters, num_filters, filter_size, padding=1)
 
         self.fc = nn.Linear(num_filters, output_dim)
 
     def forward(self, x):
         x = x.view(-1, self.input_dim, self.window_len)
-
+        '''
         x = self.pool(F.relu(self.conv1(x)))
         x = self.pool(F.relu(self.conv2(x)))
         x = self.pool(F.relu(self.conv3(x)))
+        위의 식으로 코드 돌리면 filter 개수가 절반이 되어서 에러가 남
+        '''
+        x = F.relu(self.conv1(x))
+        x = F.relu(self.conv2(x))
+        x = F.relu(self.conv3(x))
 
         x = x.view(1, -1, self.num_filters)
-        x = self.dropout(x)
+        #x = self.dropout(x)
         out = self.fc(x[:, -1])
         # out = out.view(self.batch_size, -1, self.output_dim)[:, -1, :]
 
@@ -159,7 +165,7 @@ class Manager():
         elif args.model == 'LSTM':
             self.model = LSTM(args.input_dim, args.hid_dim, args.y_frames, args.n_layers, args.dropout, args.use_bn)
         elif args.model == 'CNN':
-            self.model = Conv1D(args.input_dim, args.y_frames, args.n_filters, args.filter_size, args.dropout)
+            self.model = CNN(args.input_dim, args.y_frames, args.n_filters, args.filter_size, args.dropout, args.str_len)
         else:
             raise ValueError('In-valid model choice')
 
@@ -179,6 +185,7 @@ class Manager():
 
         model = self.model
         batch_size = round(batch_size)
+        print('batch size: ', batch_size)
         loss_fn = torch.nn.CrossEntropyLoss()
 
         trainloader = DataLoader(self.trainset, batch_size=batch_size,
