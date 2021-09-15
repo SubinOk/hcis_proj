@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -125,15 +126,16 @@ class CNN(nn.Module):
         self.dropout = dropout
         self.window_len = window_len
 
-        self.conv1 = nn.Conv1d(input_dim, num_filters, filter_size, padding=1)
+        self.conv1 = nn.Conv1d(input_dim, num_filters, filter_size)
         self.pool = nn.MaxPool2d(2, 2)
-        self.conv2 = nn.Conv1d(num_filters, num_filters, filter_size, padding=1)
-        self.conv3 = nn.Conv1d(num_filters, num_filters, filter_size, padding=1)
+        self.conv2 = nn.Conv1d(num_filters, num_filters, filter_size)
+        self.conv3 = nn.Conv1d(num_filters, num_filters, filter_size)
 
         self.fc = nn.Linear(num_filters, output_dim)
 
-    def forward(self, x):
+    def forward(self, x, batch_size):
         x = x.view(-1, self.input_dim, self.window_len)
+        print('forward 1:', x.shape)
         '''
         x = self.pool(F.relu(self.conv1(x)))
         x = self.pool(F.relu(self.conv2(x)))
@@ -141,13 +143,20 @@ class CNN(nn.Module):
         위의 식으로 코드 돌리면 filter 개수가 절반이 되어서 에러가 남
         '''
         x = F.relu(self.conv1(x))
+        print('forward 2:',x.shape)
         x = F.relu(self.conv2(x))
+        print('forward 3:',x.shape)
         x = F.relu(self.conv3(x))
+        print('forward 4:',x.shape)
 
         x = x.view(1, -1, self.num_filters)
+        print('forward 5:',x.shape)
         #x = self.dropout(x)
-        out = self.fc(x[:, -1])
-        # out = out.view(self.batch_size, -1, self.output_dim)[:, -1, :]
+        out = self.fc(x)
+        print('forward 6:',out.shape)
+        #out = out.view(batch_size, -1, self.output_dim)[:, -1, :]
+        out = np.squeeze(out)
+        print('forward 7:',out.shape)
 
         return out
 
@@ -201,15 +210,24 @@ class Manager():
 
         for i, (X, y) in enumerate(trainloader):
 
+            print('X1: ', X.shape)
+            print('y2: ', y.shape)
+
             X = X.transpose(0, 1).float().to(self.device)
-            y_true = y[:, 0].long().to(self.device)
+            print('X2: ', X.shape)
+
+            y_true = y.long().to(self.device)
+            print('y_true shape: ', y_true.shape)
+            y_1 = y_true.view(-1)
+            print('y_1 shape: ', y_1.shape)
 
             model.zero_grad()
             optimizer.zero_grad()
             if model == 'ConvLSTM' or model == 'LSTM':
                 model.hidden = [hidden.to(args.device) for hidden in model.init_hidden()]
-
-            y_pred = model(X)
+            print('batch size final: ', batch_size)
+            y_pred = model(X, batch_size)
+            print('y_pred shape', y_pred.shape)
             loss = loss_fn(y_pred, y_true.view(-1))
             loss.backward()
             optimizer.step()
@@ -224,8 +242,9 @@ class Manager():
 
         return train_loss, train_acc
 
-    def validate(self, loss_fn, args):
+    def validate(self, loss_fn, args, batch_size):
         model = self.model
+        batch_size = round(batch_size)
         valloader = DataLoader(self.valset, batch_size=args.batch_size,
         shuffle=False, drop_last=True)
         model.eval()
@@ -236,11 +255,11 @@ class Manager():
             for i, (X, y) in enumerate(valloader):
 
                 X = X.transpose(0, 1).float().to(args.device)
-                y_true = y[:, 0].long().to(args.device)
+                y_true = y.long().to(args.device)
                 if args.model == 'ConvLSTM' or args.model == 'LSTM':
                     model.hidden = [hidden.to(args.device) for hidden in model.init_hidden()]
 
-                y_pred = model(X)
+                y_pred = model(X, batch_size)
                 loss = loss_fn(y_pred, y_true.view(-1))
 
                 _, y_pred = torch.max(y_pred.data, 1)
